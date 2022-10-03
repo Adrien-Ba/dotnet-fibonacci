@@ -1,11 +1,30 @@
-﻿using System;
+﻿// See https://aka.ms/new-console-template for more information
+
+using System;
 using System.Diagnostics;
+using System.IO;
 using Leonardo;
+using Microsoft.Extensions.Configuration;
+
+var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");  
+
+IConfiguration configuration = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddEnvironmentVariables()
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true)
+    .Build();    
+
+var applicationName = configuration.GetValue<string>("Application:Name");    
+var applicationMessage = configuration.GetValue<string>("Application:Message");   
+
+Console.WriteLine($"Application Name : {applicationName}");    
+Console.WriteLine($"Application Message : {applicationMessage}");
 
 var stopwatch = new Stopwatch();
 
 stopwatch.Start();
-var listOfResults = Fibonacci.RunAsync(args);
+await using var dataContext = new FibonacciDataContext();
+
+var listOfResults = await new Fibonacci(dataContext).RunAsync(args);
 
 foreach (var listOfResult in listOfResults)
 {
@@ -14,10 +33,3 @@ foreach (var listOfResult in listOfResults)
 stopwatch.Stop();
 
 Console.WriteLine("time elapsed in seconds : " + stopwatch.Elapsed.Seconds);
-
-// int Fib(int i)
-// {
-//     if (i <= 2) return 1;
-//     return Fib(i - 1) + Fib(i - 2);
-// }  
-
