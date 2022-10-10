@@ -6,7 +6,9 @@ using System.IO;
 using Demo;
 using Leonardo;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 
 var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");  
 
@@ -17,15 +19,29 @@ IConfiguration configuration = new ConfigurationBuilder().SetBasePath(Directory.
 
 var applicationSection = configuration.GetSection("Application");
 var applicationConfig = applicationSection.Get<ApplicationConfig>();
+
+var services = new ServiceCollection();
+services.AddTransient<FibonacciDataContext>();
+services.AddTransient<Fibonacci>();
+services.AddLogging(configure => configure.AddConsole());
+
+using (var serviceProvider = services.BuildServiceProvider())
+{
+    var logger =serviceProvider.GetService<ILogger<Program>>();
+    
+    logger.LogInformation($"Application Name : {applicationConfig.Name}");
+    logger.LogInformation($"Application Message : {applicationConfig.Message}");
+    
+    var fibonacci = serviceProvider.GetService<Fibonacci>();
+    var results = await fibonacci.Execute(args);
+
+}
+
 var loggerFactory = LoggerFactory.Create(builder => {
     builder.AddFilter("Microsoft", LogLevel.Warning)
         .AddFilter("System", LogLevel.Warning)
         .AddFilter("Demo", LogLevel.Debug)
         .AddConsole();    });
-var logger = loggerFactory.CreateLogger("Demo.Program");
-logger.LogInformation($"Application Name : {applicationConfig.Name}");
-logger.LogInformation($"Application Message : {applicationConfig.Message}");
-
 
 var stopwatch = new Stopwatch();
 
